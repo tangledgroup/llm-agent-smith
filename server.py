@@ -17,7 +17,7 @@ async def post_api_text_completion(request):
     req = await request.json()
     model_path = req.get('model_path', MODEL_PATH)
     prompt = req['prompt']
-    suffix = dill.loads(base64.b64decode(req['suffix']))
+    suffix = dill.loads(base64.b64decode(req['suffix'])) if 'suffix' in req else None
     n_ctx = req['n_ctx']
     max_tokens = req['max_tokens']
     temperature = req['temperature']

